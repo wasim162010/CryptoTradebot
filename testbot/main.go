@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	API_KEY       = "API_KEY"
-	API_SECRET    = "API_SECRET"
+	API_KEY       = "dde393d6492449b98b0434415f49bb19"
+	API_SECRET    = "a616ed936dbf48e4b085b9922d083057"
 	BUY_STRING    = "BTC"
 	SELL_STRING   = "VTC"
 	MARKET_STRING = BUY_STRING + "-" + SELL_STRING
@@ -36,31 +36,20 @@ var (
 	lowIndex  = 0.00
  )
 
- func allowSell() bool {
-	if lastBuyPrice > 0 {
-	   gain := lastPrice / lastBuyPrice
-	   if gain < (1.00 - MAX_LOSS) {
-		  return true
-	   }
-	   if gain < (1.00 + MIN_GAIN) {
-		  return false
-	   }
-	}
-	return true
- }
+
 
 func main() {
 	// Bittrex client
 	bittrex := bittrex.New(API_KEY, API_SECRET)
 
 	// Get markets
-	// markets, err := bittrex.GetMarkets()
-	// fmt.Println(err, markets)
+	markets, err := bittrex.GetMarkets()
+	fmt.Println("markets ", markets)
 
 	balances, err := bittrex.GetBalances()
 	if err == nil {
 		for _, b := range balances {
-		   fmt.Println(b)
+		   fmt.Println("balance is ", b)
 		}
 	 } else {
 		fmt.Println(err)
@@ -70,14 +59,16 @@ func main() {
 }
 
 func decideBuySell(b *bittrex.Bittrex) {
-
+	fmt.Println("decideBuySell openOrder ", openOrder)
 	if openOrder {
 		// Should we close the open order?
 		for _, o := range orders {
 		   ppu, _ := o.PricePerUnit.Float64()
-		   log.Printf("Order percent: %.4f\n", ppu/lastPrice)
+		  // log.Printf("Order percent: %.4f\n", ppu/lastPrice)
+		   fmt.Println("Order percent: %.4f\n", ppu/lastPrice)
 		   if ppu/lastPrice > (1.00+ORDER_VARIANCE) || ppu/lastPrice < (1.00-ORDER_VARIANCE) {
-			  log.Println("Canceled order: ", o.OrderUuid)
+			//  log.Println("Canceled order: ", o.OrderUuid)
+			  fmt.Println("Canceled order: ", o.OrderUuid)
 			  b.CancelOrder(o.OrderUuid)
 			  // We assume we only have one order at a time
 		   }
@@ -86,41 +77,50 @@ func decideBuySell(b *bittrex.Bittrex) {
 	 // If we have no open order should we buy or sell?
 	 if !openOrder {
 		if buySellIndex > BUY_TRIGGER {
-		   log.Println("BUY TRIGGER ACTIVE!")
+		  // log.Println("BUY TRIGGER ACTIVE!")
+		   fmt.Println("BUY TRIGGER ACTIVE!")
 		   for _, bals := range balances {
 			  bal, _ := bals.Balance.Float64()
+			  fmt.Println("bal ", bal)
 			  if BUY_STRING == bals.Currency {
 				 //log.Printf("Bal: %.4f %s == %s\n", bal/lastPrice, SELL_STRING, bals.Currency)
 			  }
 			  if bal > 0.01 && BUY_STRING == bals.Currency && lastPrice > 0.00 {
 				 // Place buy order
-				 log.Printf("Placed buy order of %.4f %s at %.8f\n=================================================\n", (bal/lastPrice)-5, BUY_STRING, lastPrice)
+				// log.Printf("Placed buy order of %.4f %s at %.8f\n=================================================\n", (bal/lastPrice)-5, BUY_STRING, lastPrice)
+				 fmt.Println("Placed buy order of %.4f %s at %.8f\n=================================================\n", (bal/lastPrice)-5, BUY_STRING, lastPrice)
 				 order, err := b.BuyLimit(MARKET_STRING, decimal.NewFromFloat((bal/lastPrice)-5), decimal.NewFromFloat(lastPrice))
 				 if err != nil {
 					log.Println("ERROR ", err)
+					fmt.Println("ERROR ", err)
 				 } else {
 					log.Println("Confirmed: ", order)
+					fmt.Println("Confirmed: ", order)
 				 }
 				 lastBuyPrice = lastPrice
 				 openOrder = true
 			  }
 		   }
 		} else if buySellIndex < SELL_TRIGGER {
-		   log.Println("SELL TRIGGER ACTIVE!")
+		  // log.Println("SELL TRIGGER ACTIVE!")
+		   fmt.Println("SELL TRIGGER ACTIVE!")
 		   for _, bals := range balances {
 			  bal, _ := bals.Balance.Float64()
+			  fmt.Println("bal: ", bal)
 			  if SELL_STRING == bals.Currency {
-				 //allow := "false"
-				 //if allowSell() {
-				 // allow = "true"
-				 //}
-				 //log.Printf("Bal: %.4f %s == %s && %s\n", bal, BUY_STRING, bals.Currency, allow)
+				 allow := "false"
+				 if allowSell() {
+				 allow = "true"
+				 }
+				// log.Printf("Bal: %.4f %s == %s && %s\n", bal, BUY_STRING, bals.Currency, allow)
+				 fmt.Println("Bal: %.4f %s == %s && %s\n", bal, BUY_STRING, bals.Currency, allow)
 			  }
 			  if bal > 0.01 && SELL_STRING == bals.Currency && lastPrice > 0.00 && allowSell() {
 				  //SellLimit
 			
 				 // Place sell order
-				 log.Printf("Placed sell order of %.4f %s at %.8f\n=================================================\n", bal, BUY_STRING, lastPrice)
+				// log.Printf("Placed sell order of %.4f %s at %.8f\n=================================================\n", bal, BUY_STRING, lastPrice)
+				 fmt.Println("Placed sell order of %.4f %s at %.8f\n=================================================\n", bal, BUY_STRING, lastPrice)
 				//  order, err := b.SellLimit(MARKET_STRING, decimal.NewFromFloat(bal), decimal.NewFromFloat(lastPrice))
 				//  if err != nil {
 				// 	log.Println("ERROR ", err)
@@ -138,7 +138,7 @@ func decideBuySell(b *bittrex.Bittrex) {
 
 
 func calculateIndex(buy bool, q float64, r float64) {
-
+	fmt.Println("calculateIndex buy, q, r ", buy, q, r)
   // q is quantity VTC
    // r is the rate
    percent := 0.00
@@ -146,11 +146,14 @@ func calculateIndex(buy bool, q float64, r float64) {
    // Calculate percentage of rate
    if r > 0 && q > 0 && lastPrice > 0 && readyToRun {
 	percent = lastPrice / r
+	fmt.Println("calculateIndex percent ", percent)
 	if buy {
 	   //log.Printf("Buy percent: %.4f\n", percent)
 	   //log.Printf("Buy quantity: %.4f\n", q)
 	   if percent > (1.00 - ORDER_RANGE) && percent < (1.00 + ORDER_RANGE) {
+	
 		  buySellIndex = buySellIndex + (percent * q)
+		  fmt.Println("calculateIndex buySellIndex ", buySellIndex)
 	   }
 	} else {
 	   //log.Printf("Sell percent: %.4f\n", percent)
@@ -158,6 +161,7 @@ func calculateIndex(buy bool, q float64, r float64) {
 	   if percent > (1.00 - ORDER_RANGE) && percent < (1.00 + ORDER_RANGE) {
 		  percent = percent - 2.00 // Reverse percent, lower is higher
 		  buySellIndex = buySellIndex + (percent * q)
+		  fmt.Println("calculateIndex percent buySellIndex ", percent, buySellIndex)
 	   }
 	}
  }
@@ -176,3 +180,16 @@ func calculateIndex(buy bool, q float64, r float64) {
 
 
 }
+
+func allowSell() bool {
+	if lastBuyPrice > 0 {
+	   gain := lastPrice / lastBuyPrice
+	   if gain < (1.00 - MAX_LOSS) {
+		  return true
+	   }
+	   if gain < (1.00 + MIN_GAIN) {
+		  return false
+	   }
+	}
+	return true
+ }
