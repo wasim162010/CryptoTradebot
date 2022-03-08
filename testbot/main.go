@@ -51,7 +51,7 @@ var (
 
 func main() {
 	// Bittrex client
-	bittrex := bittrex.New("cdd39e1e73b14432ab7810d43915260b", "18c366d868774c28bd931ef907291457")
+	bittrex := bittrex.New(API_KEY, API_SECRET)
 
 	// Get markets
 	// markets, err := bittrex.GetMarkets()
